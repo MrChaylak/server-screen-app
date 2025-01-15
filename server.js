@@ -48,7 +48,8 @@ const connectedSockets = [
 io.on('connection',(socket)=>{
     console.log("New connection:", { socketId: socket.id, userName: socket.handshake.auth.userName });
     // console.log("Someone has connected");
-    const userName = socket.handshake.auth.userName;
+    // const userName = socket.handshake.auth.userName;
+    const userName = `${socket.handshake.auth.userName}-${socket.id}`;
     const password = socket.handshake.auth.password;
 
     /* if(password !== "x"){
@@ -64,16 +65,25 @@ io.on('connection',(socket)=>{
 
     // Handle disconnections
     socket.on('disconnect', () => {
-        console.log("Socket disconnected:", socket.id);
-
-        // Remove the disconnected socket from the array
+        // Find the disconnected user in connectedSockets
         const index = connectedSockets.findIndex(s => s.socketId === socket.id);
         if (index !== -1) {
-        connectedSockets.splice(index, 1); // Remove the socket from the array
-        }
+            const disconnectedUserName = connectedSockets[index].userName;
+            console.log(`Socket disconnected: ${socket.id}, userName: ${disconnectedUserName}`);
+            connectedSockets.splice(index, 1); // Remove the socket from the array
+            console.log("Updated Connected Sockets:", connectedSockets);
 
-        // Log the updated list of connected sockets
-        console.log("Updated Connected Sockets:", connectedSockets);
+            // Remove stale offers associated with the disconnected user
+            for (let i = offers.length - 1; i >= 0; i--) {
+                if (offers[i].offererUserName === disconnectedUserName) {
+                offers.splice(i, 1); // Remove the offer at index i
+                }
+            }
+            console.log("Updated Offers array:", offers);
+        }   else {
+            console.log(`Socket disconnected: ${socket.id}, userName: Not found`);
+        }
+        
     });
 
     //a new client has joined. If there are any offers available,
@@ -97,7 +107,7 @@ io.on('connection',(socket)=>{
     })
 
     socket.on('newAnswer',(offerObj,ackFunction)=>{
-        console.log(offerObj);
+        // // console.log(offerObj);
         //emit this answer (offerObj) back to CLIENT1
         //in order to do that, we need CLIENT1's socketid
         // // console.log("Answerer userName:", userName);
@@ -118,6 +128,8 @@ io.on('connection',(socket)=>{
         ackFunction(offerToUpdate.offerIceCandidates);
         offerToUpdate.answer = offerObj.answer
         offerToUpdate.answererUserName = userName
+        console.log("Updated offerToUpdate:", offerToUpdate);
+        console.log("Offers array after update:", offers);
         //socket has a .to() which allows emiting to a "room"
         //every socket has it's own room
         socket.to(socketIdToAnswer).emit('answerResponse',offerToUpdate)
