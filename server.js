@@ -92,49 +92,30 @@ io.on('connection',(socket)=>{
         socket.emit('availableOffers',offers);
     }
     
-    socket.on('newOffer',newOffer=>{
-        offers.push({
-            offererUserName: userName,
-            offer: newOffer,
-            offerIceCandidates: [],
-            answererUserName: null,
-            answer: null,
-            answererIceCandidates: []
-        })
-        // console.log(newOffer.sdp.slice(50))
-        //send out to all connected sockets EXCEPT the caller
-        socket.broadcast.emit('newOfferAwaiting',offers.slice(-1))
-    })
+    socket.on("newOffer", (offer) => {
+        console.log("New offer received:", offer);
+        // Broadcast the offer to the Electron app
+        socket.broadcast.emit("newOfferAwaiting", offer);
+      });
+      
+      socket.on("newAnswer", (answer) => {
+        console.log("New answer received:", answer);
+        // Broadcast the answer to the Vue app
+        socket.broadcast.emit("answerResponse", answer);
+      });
 
-    socket.on('newAnswer',(offerObj,ackFunction)=>{
-        // // console.log(offerObj);
-        //emit this answer (offerObj) back to CLIENT1
-        //in order to do that, we need CLIENT1's socketid
-        // // console.log("Answerer userName:", userName);
-        const socketToAnswer = connectedSockets.find(s=>s.userName === offerObj.offererUserName)
-        if(!socketToAnswer){
-            console.log("No matching socket")
-            return;
+      socket.on("iceCandidate", (data) => {
+        const { candidate, userName, didIOffer } = data;
+        const targetSocket = connectedSockets.find(
+          (s) => s.userName !== userName // Forward to the other peer
+        );
+        if (targetSocket) {
+          socket.to(targetSocket.socketId).emit("iceCandidate", {
+            candidate,
+            didIOffer, // Forward the flag
+          });
         }
-        //we found the matching socket, so we can emit to it!
-        const socketIdToAnswer = socketToAnswer.socketId;
-        //we find the offer to update so we can emit it
-        const offerToUpdate = offers.find(o=>o.offererUserName === offerObj.offererUserName)
-        if(!offerToUpdate){
-            console.log("No OfferToUpdate")
-            return;
-        }
-        //send back to the answerer all the iceCandidates we have already collected
-        ackFunction(offerToUpdate.offerIceCandidates);
-        offerToUpdate.answer = offerObj.answer
-        offerToUpdate.answererUserName = userName
-        console.log("Updated offerToUpdate:", offerToUpdate);
-        console.log("Offers array after update:", offers);
-        //socket has a .to() which allows emiting to a "room"
-        //every socket has it's own room
-        socket.to(socketIdToAnswer).emit('answerResponse',offerToUpdate)
-        // // console.log("Emitting answerResponse to:", socketIdToAnswer, offerToUpdate);
-    })
+      });
 
     socket.on('sendIceCandidateToSignalingServer',iceCandidateObj=>{
         const { didIOffer, iceUserName, iceCandidate } = iceCandidateObj;
