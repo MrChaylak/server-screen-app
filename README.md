@@ -61,7 +61,7 @@ This command installs all required dependencies listed in package.json.
 
 ## 💡 Running the Application
 
-To run the application in development mode, use the following command:
+To start the server use the following command:
 
 ```bash
 npm start
