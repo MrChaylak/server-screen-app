@@ -4,10 +4,12 @@ This is a simple **WebSocket** signaling server that listens for client connecti
 
 ## Table of Contents
 
-- Used Technologies
-- Prerequisites
-- Installation
-- Running the Application
+- [Used Technologies](#used-technologies)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Running the Application](#-running-the-application)
+
+---
 
 ## Used Technologies
 
